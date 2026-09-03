@@ -36,7 +36,7 @@ O certificado, sua senha, `.env.local` e arquivos emitidos são ignorados pelo G
 
 1. Envie o projeto a um repositório Git privado e importe-o na Vercel.
 2. Adicione uma integração Upstash Redis pelo Marketplace da Vercel.
-3. Configure `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`.
+3. Configure `KV_REST_API_URL` e `KV_REST_API_TOKEN`.
 4. Configure `APP_PASSWORD` com uma senha longa e exclusiva.
 5. Configure `AUTH_SECRET` com um segredo aleatório diferente da senha.
 6. Configure `NFSE_CERT_BASE64`, `NFSE_CERT_PASSWORD` e `NFSE_NEXT_DPS_NUMBER`.

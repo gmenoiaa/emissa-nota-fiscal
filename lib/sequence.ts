@@ -50,11 +50,10 @@ export function createRedisDpsSequence(initialValue: number): DpsSequence {
 }
 
 export function getDpsSequence(initialValue: number): DpsSequence {
-  const hasRedis = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+  const hasRedis = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
   if (hasRedis) return createRedisDpsSequence(initialValue);
   if (process.env.VERCEL === '1') {
-    throw new Error('Configure UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN para numerar DPS na Vercel.');
+    throw new Error('Configure KV_REST_API_URL e KV_REST_API_TOKEN para numerar DPS na Vercel.');
   }
   return createLocalDpsSequence(path.join(process.cwd(), 'data'), initialValue);
 }
-
