@@ -8,7 +8,7 @@ export function getConfig() {
     throw new Error('Produção solicitada, mas NFSE_ALLOW_PRODUCTION não está habilitado.');
   }
 
-  const initialDpsNumber = Number(process.env.NFSE_NEXT_DPS_NUMBER || 8);
+  const initialDpsNumber = Number(process.env.NFSE_NEXT_DPS_NUMBER || 1);
   if (!Number.isSafeInteger(initialDpsNumber) || initialDpsNumber < 1) {
     throw new Error('NFSE_NEXT_DPS_NUMBER deve ser um inteiro positivo.');
   }
@@ -26,4 +26,3 @@ export function getConfig() {
     deployedOnVercel: process.env.VERCEL === '1',
   };
 }
-

@@ -4,7 +4,9 @@ export const fixedInvoice = {
   version: '1.01',
   cityCode: '4115200',
   providerCnpj: '28220610000110',
-  series: '70000',
+  // 00001-49999 is the official range for DPS issued by the taxpayer's own app.
+  // The 70000-79999 range belongs exclusively to the national Web Issuer.
+  series: '1',
   taxRegime: { simplesOption: '3', simplesAssessment: '1', specialRegime: '0' },
   service: { nationalCode: '080201', municipalCode: '006', nbs: '999999999' },
   foreignTrade: { serviceMode: '4', relationship: '0', temporaryGoodsMovement: '1', mdic: '0' },

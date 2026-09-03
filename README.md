@@ -52,7 +52,7 @@ Produção exige simultaneamente:
 - `NFSE_ALLOW_PRODUCTION=true`
 - confirmação explícita na tela a cada emissão
 
-A sequência começa em DPS 8 porque a maior DPS fornecida é 7. Ajuste `NFSE_NEXT_DPS_NUMBER` antes de inicializar o Redis se houver notas posteriores.
+A aplicação usa a série `1`, dentro da faixa oficial `00001–49999` reservada a aplicativos próprios. A série `70000` observada nos XMLs de referência pertence exclusivamente ao Emissor Web e não pode ser usada pela API. Como esta é uma série nova, a sequência começa em DPS 1. O Redis usa por padrão uma chave específica para o CNPJ e a série (`nfse:28220610000110:00001:next-dps-number`).
 
 ## Confirmações fiscais pendentes
 

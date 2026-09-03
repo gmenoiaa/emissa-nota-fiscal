@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Redis } from '@upstash/redis';
+import { fixedInvoice } from './invoice-config';
 
 export interface DpsSequence {
   peek(): Promise<number>;
@@ -34,7 +35,11 @@ export function createLocalDpsSequence(dataDirectory: string, initialValue: numb
 
 export function createRedisDpsSequence(initialValue: number): DpsSequence {
   const redis = Redis.fromEnv();
-  const key = process.env.NFSE_DPS_SEQUENCE_KEY || 'nfse:next-dps-number';
+  const paddedSeries = fixedInvoice.series.padStart(5, '0');
+  const configuredKey = process.env.NFSE_DPS_SEQUENCE_KEY?.trim();
+  const key = configuredKey && configuredKey !== 'nfse:next-dps-number'
+    ? configuredKey
+    : `nfse:${fixedInvoice.providerCnpj}:${paddedSeries}:next-dps-number`;
   const initialize = async () => { await redis.setnx(key, initialValue); };
   return {
     async peek() {

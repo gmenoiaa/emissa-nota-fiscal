@@ -23,7 +23,8 @@ test('creates an Apideck DPS from the registered profile', () => {
   assert.equal(select('string(//n:vServ)', doc), '1234.56');
   assert.equal(select('string(//n:xDescServ)', doc), 'INV-2000');
   assert.equal(select('string(//n:tpAmb)', doc), '2');
-  assert.equal(select('string(/n:DPS/n:infDPS/@Id)', doc), 'DPS411520022822061000011070000000000000000008');
+  assert.equal(select('string(/n:DPS/n:infDPS/n:serie)', doc), '1');
+  assert.equal(select('string(/n:DPS/n:infDPS/@Id)', doc), 'DPS411520022822061000011000001000000000000008');
 });
 
 test('creates a Cima DPS with USD and the registered US address', () => {
@@ -61,4 +62,3 @@ test('round-trips the official gzip/base64 envelope', () => {
   assert.equal(decodeDocument(encoded), xml);
   assert.equal(findEncodedNfse({ documentos: { nfseXmlGZipB64: encoded } }), encoded);
 });
-
