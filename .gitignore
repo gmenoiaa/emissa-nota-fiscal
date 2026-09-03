@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.local
+.next/
+.vercel/
+*.tsbuildinfo
+data/
+certificates/
+*.pfx
+*.p12
+*.pem
+*.key
+.DS_Store
