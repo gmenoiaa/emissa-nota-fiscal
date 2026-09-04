@@ -1,6 +1,8 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { api } from '@/lib/client-api';
+import { parseInvoiceReference } from '@/lib/invoice-reference';
 
 interface PublicCustomer {
   id: string;
@@ -26,17 +28,7 @@ interface FormPayload {
   amount: string;
   description: string;
   confirmProduction: boolean;
-}
-
-async function api<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, options);
-  if (response.status === 401) {
-    window.location.assign('/login');
-    throw new Error('Sessão expirada.');
-  }
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.details ? `${data.error}\n${JSON.stringify(data.details, null, 2)}` : data.error);
-  return data;
+  invoiceNumber?: number;
 }
 
 function downloadXml(xml: string, filename: string) {
@@ -48,15 +40,25 @@ function downloadXml(xml: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function InvoiceForm() {
+export function NfseForm() {
   const [status, setStatus] = useState<Status | null>(null);
   const [customerId, setCustomerId] = useState('apideck');
   const [preview, setPreview] = useState<{ dpsNumber: number; xml: string } | null>(null);
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [linkedInvoice, setLinkedInvoice] = useState('');
 
   useEffect(() => {
     api<Status>('/api/status').then(setStatus).catch((error: Error) => setMessage({ text: error.message, error: true }));
+  }, []);
+
+  // Arriving from /invoices carries the invoice this NFS-e belongs to.
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const reference = query.get('invoice')?.trim().toUpperCase() || '';
+    if (reference) setLinkedInvoice(reference);
+    const linkedCustomer = query.get('customer')?.trim();
+    if (linkedCustomer) setCustomerId(linkedCustomer);
   }, []);
 
   const customer = useMemo(
@@ -74,6 +76,7 @@ export function InvoiceForm() {
       amount: String(data.get('amount') || ''),
       description: String(data.get('description') || ''),
       confirmProduction: data.get('confirmProduction') === 'on',
+      ...(linkedInvoice ? { invoiceNumber: parseInvoiceReference(linkedInvoice) ?? undefined } : {}),
     };
   }
 
@@ -95,11 +98,14 @@ export function InvoiceForm() {
     setLoading(true);
     setMessage({ text: 'Preparando, assinando e enviando a DPS…' });
     try {
-      const data = await api<{ dpsNumber: number; accessKey: string | null; nfseXml: string | null }>('/api/issue', {
+      const data = await api<{ dpsNumber: number; accessKey: string | null; nfseXml: string | null; invoiceLinkError?: string }>('/api/issue', {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(formPayload(event.currentTarget)),
       });
       if (data.nfseXml) downloadXml(data.nfseXml, `${data.accessKey || `DPS-${data.dpsNumber}`}.xml`);
-      setMessage({ text: `NFS-e emitida com sucesso. DPS ${data.dpsNumber}${data.accessKey ? ` · chave ${data.accessKey}` : ''}. O XML foi baixado neste dispositivo.` });
+      setMessage({
+        text: `NFS-e emitida com sucesso. DPS ${data.dpsNumber}${data.accessKey ? ` · chave ${data.accessKey}` : ''}. O XML foi baixado neste dispositivo.${
+          data.invoiceLinkError ? `\n\nA nota foi emitida, mas o vínculo com a invoice falhou: ${data.invoiceLinkError}` : ''
+        }` });
       const refreshed = await api<Status>('/api/status');
       setStatus(refreshed);
     } catch (error) {
@@ -125,6 +131,17 @@ export function InvoiceForm() {
         </div>
       </header>
 
+      <nav className="tabs">
+        <a href="/" className="active" aria-current="page">Emitir NFS-e</a>
+        <a href="/invoices">Invoices</a>
+      </nav>
+
+      {linkedInvoice && (
+        <div className="card linked-invoice">
+          Emitindo a NFS-e da invoice <strong>{linkedInvoice}</strong>. Após a emissão, a DPS e a chave ficam registradas nela.
+        </div>
+      )}
+
       <section className="card">
         <form onSubmit={issue}>
           <label>Empresa
@@ -145,7 +162,7 @@ export function InvoiceForm() {
               <div className="money"><span>R$</span><input name="amount" inputMode="decimal" placeholder="37.204,60" required /></div>
             </label>
             <label>Descrição / invoice
-              <input name="description" placeholder="INV-1034" required />
+              <input name="description" placeholder="INV-1034" defaultValue={linkedInvoice} key={linkedInvoice} required />
             </label>
           </div>
 

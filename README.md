@@ -41,8 +41,40 @@ O certificado, sua senha, `.env.local` e arquivos emitidos são ignorados pelo G
 5. Configure `AUTH_SECRET` com um segredo aleatório diferente da senha.
 6. Configure `NFSE_CERT_BASE64`, `NFSE_CERT_PASSWORD` e `NFSE_NEXT_DPS_NUMBER`.
 7. Comece com `NFSE_ENV=restricted` e `NFSE_ALLOW_PRODUCTION=false`.
+8. Para as invoices, configure `INVOICE_NEXT_NUMBER`, `INVOICE_SEQUENCE_KEY` e,
+   se for enviar por e-mail, `RESEND_API_KEY` (veja *Invoices comerciais*).
 
 A aplicação exige autenticação em qualquer deploy Vercel. O Redis é obrigatório nesse ambiente para reservar números de DPS atomicamente; o filesystem temporário não é usado. Após uma emissão, o navegador baixa imediatamente o XML retornado.
+
+## Invoices comerciais
+
+A aba **Invoices** (`/invoices`) gera as invoices enviadas aos clientes, no
+padrão das emitidas anteriormente pelo Invoicely, e mantém a lista do que já foi
+gerado.
+
+- **Numeração**: sequencial e contínua a partir de `INV-1038`, reservada de forma
+  atômica no Redis (ou em `data/invoice-sequence.json` localmente). Um payload
+  inválido é rejeitado antes de consumir um número, então a sequência não abre
+  buracos.
+- **Registro**: cada invoice é gravada como um snapshot completo. Alterar o
+  cadastro de um cliente depois não altera nenhuma invoice já emitida.
+- **PDF**: gerado sob demanda a partir do registro (`GET /api/invoices/1038/pdf`),
+  em inglês, uma página. Nada é guardado em blob storage.
+- **E-mail**: envio explícito por invoice. Apideck tem `ap@apideck.com`
+  cadastrado; a Cima Staffing não recebe e-mail, só gera o PDF. Reenvio exige
+  confirmação para não cobrar o cliente duas vezes.
+- **Vínculo com a NFS-e**: o botão *Emitir* leva ao formulário de NFS-e já
+  preenchido com a empresa e o número da invoice. Depois da emissão, a DPS e a
+  chave de acesso ficam registradas na invoice.
+
+### Configuração do Resend
+
+Enquanto não houver um domínio próprio verificado, deixe `INVOICE_FROM_EMAIL`
+vazio: a aplicação usa o remetente de teste do Resend, que **só entrega para o
+e-mail dono da conta**. Nesse modo o destinatário real é substituído por
+`INVOICE_TEST_RECIPIENT` e citado no corpo da mensagem, e a tela mostra
+`e-mail em teste → …`. Para enviar de verdade ao cliente, verifique um domínio no
+Resend e preencha `INVOICE_FROM_EMAIL` (ex.: `GWM Informatica <billing@seudominio.com.br>`).
 
 ## Produção
 

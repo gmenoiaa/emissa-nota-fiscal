@@ -11,3 +11,5 @@ certificates/
 *.pem
 *.key
 .DS_Store
+.vercel
+.env*

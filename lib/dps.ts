@@ -1,3 +1,4 @@
+import { brazilNowIso } from './dates';
 import { fixedInvoice as fixed, getCustomer } from './invoice-config';
 import type { InvoiceInput, NfseEnvironment } from './types';
 
@@ -10,17 +11,6 @@ export function normalizeMoney(value: string): string {
   const amount = Number(normalized);
   if (!Number.isFinite(amount) || amount <= 0) throw new Error('Informe um valor maior que zero.');
   return amount.toFixed(2);
-}
-
-function nowInBrazil(): string {
-  const parts = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-  }).formatToParts(new Date()).reduce<Record<string, string>>((all, item) => {
-    all[item.type] = item.value;
-    return all;
-  }, {});
-  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}-03:00`;
 }
 
 export interface BuildDpsOptions {
@@ -41,7 +31,7 @@ export function buildDps(input: InvoiceInput, options: BuildDpsOptions): string 
     throw new Error('O número da DPS deve conter de 1 a 15 dígitos.');
   }
   const environment = options.environment === 'production' ? '1' : '2';
-  const issuedAt = options.issuedAt || nowInBrazil();
+  const issuedAt = options.issuedAt || brazilNowIso();
   const competenceDate = input.competenceDate || issuedAt.slice(0, 10);
   const id = `DPS${fixed.cityCode}2${fixed.providerCnpj.padStart(14, '0')}${fixed.series.padStart(5, '0')}${dpsNumber.padStart(15, '0')}`;
   const complement = address.complement ? `\n        <xCpl>${escapeXml(address.complement)}</xCpl>` : '';
@@ -115,6 +105,13 @@ export function buildDps(input: InvoiceInput, options: BuildDpsOptions): string 
 </DPS>`;
 }
 
+/** Optional back-reference to a commercial invoice; never affects the DPS itself. */
+function parseLinkedInvoiceNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || String(value).trim() === '') return undefined;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : undefined;
+}
+
 export function parseInvoiceInput(value: unknown): InvoiceInput {
   if (!value || typeof value !== 'object') throw new Error('Dados da nota inválidos.');
   const input = value as Record<string, unknown>;
@@ -124,5 +121,6 @@ export function parseInvoiceInput(value: unknown): InvoiceInput {
     description: String(input.description || ''),
     competenceDate: input.competenceDate ? String(input.competenceDate) : undefined,
     confirmProduction: input.confirmProduction === true,
+    invoiceNumber: parseLinkedInvoiceNumber(input.invoiceNumber),
   };
 }

@@ -4,6 +4,7 @@ import { getConfig } from '@/lib/config';
 import { buildDps, parseInvoiceInput } from '@/lib/dps';
 import { errorResponse } from '@/lib/http';
 import { decodeDocument, findEncodedNfse, issueNfse } from '@/lib/nfse-client';
+import { getInvoiceStore } from '@/lib/invoice-store';
 import { getDpsSequence } from '@/lib/sequence';
 import { signDps } from '@/lib/sign';
 
@@ -39,7 +40,21 @@ export async function POST(request: Request) {
     const encodedNfse = findEncodedNfse(result);
     const nfseXml = encodedNfse ? decodeDocument(encodedNfse) : null;
     const accessKey = nfseXml?.match(/<infNFSe\b[^>]*\bId=["']NFS(\d{50})["']/)?.[1] || null;
-    return Response.json({ success: true, dpsNumber, accessKey, nfseXml });
+
+    // Best-effort back-reference. The NFS-e already exists at the SEFIN by now,
+    // so a storage failure here must not turn a successful issuance into an error.
+    let invoiceLinkError: string | undefined;
+    if (input.invoiceNumber) {
+      try {
+        await getInvoiceStore().update(input.invoiceNumber, {
+          nfse: { dpsNumber, accessKey, linkedAt: new Date().toISOString() },
+        });
+      } catch (error) {
+        invoiceLinkError = error instanceof Error ? error.message : 'Não foi possível vincular a invoice.';
+      }
+    }
+
+    return Response.json({ success: true, dpsNumber, accessKey, nfseXml, invoiceLinkError });
   } catch (error) {
     return errorResponse(error);
   }
