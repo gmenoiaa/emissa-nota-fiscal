@@ -50,14 +50,19 @@ function buildSubject(record: InvoiceRecord): string {
   return `Invoice ${record.reference} · ${invoiceIssuer.name}`;
 }
 
-function buildBody(record: InvoiceRecord, redirectedFrom: string[] | null): { text: string; html: string } {
+export function buildInvoiceEmailBody(
+  record: InvoiceRecord,
+  redirectedFrom: string[] | null = null,
+): { text: string; html: string } {
   const amount = `${record.currencyCode} ${Number(record.total).toFixed(2)}`;
   const lines = [
     `Hi,`,
     ``,
     `Please find attached invoice ${record.reference} for ${amount}, due ${formatInvoiceDate(record.dueDate)}.`,
     ``,
-    record.note,
+    // Split the note: HTML collapses newlines, so each line has to become its
+    // own entry or the whole wire-information block runs together.
+    ...record.note.split('\n'),
     ``,
     `Best regards,`,
     invoiceIssuer.name,
@@ -109,7 +114,7 @@ export async function sendInvoiceEmail(options: SendInvoiceEmailOptions): Promis
   if (!redirect && !intended.length) throw new Error('Nenhum destinatário cadastrado para esta empresa.');
 
   const recipients = redirect ? [status.testRecipient as string] : intended;
-  const body = buildBody(options.record, redirect ? intended : null);
+  const body = buildInvoiceEmailBody(options.record, redirect ? intended : null);
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   const { data, error } = await resend.emails.send({
