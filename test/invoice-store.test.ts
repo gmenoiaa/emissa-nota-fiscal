@@ -67,6 +67,24 @@ test('fails clearly when updating an unknown invoice', async () => {
   await assert.rejects(() => store.update(4242, { status: 'paid' }), /Invoice 4242 não encontrada/);
 });
 
+test('deletes a record and drops it from the listing', async () => {
+  const { store } = temporaryStore();
+  await store.save(record(1038));
+  await store.save(record(1039, 'cima'));
+
+  await store.delete(1038);
+  assert.equal(await store.get(1038), null);
+
+  const page = await store.list();
+  assert.deepEqual(page.records.map((item) => item.number), [1039]);
+  assert.equal(page.total, 1);
+});
+
+test('fails clearly when deleting an unknown invoice', async () => {
+  const { store } = temporaryStore();
+  await assert.rejects(() => store.delete(4242), /Invoice 4242 não encontrada/);
+});
+
 test('returns an empty page before any invoice exists', async () => {
   const { directory } = temporaryStore();
   const store = createLocalInvoiceStore(path.join(directory, 'missing'));

@@ -6,6 +6,12 @@ import { fixedInvoice } from './invoice-config';
 export interface Counter {
   peek(): Promise<number>;
   reserve(): Promise<number>;
+  /**
+   * Give a number back so deleting the newest record leaves no gap. Only works
+   * while nothing else has been reserved since; returns false otherwise. Safe
+   * here because a single authenticated operator issues one document at a time.
+   */
+  releaseIfLast(reservedNumber: number): Promise<boolean>;
 }
 
 /** Kept as an alias so existing DPS call sites read the same as before. */
@@ -35,15 +41,23 @@ export function createLocalCounter(options: Omit<CounterOptions, 'key'>): Counte
     if (!fs.existsSync(filePath)) return initialValue;
     return assertSequence(JSON.parse(fs.readFileSync(filePath, 'utf8'))[field], label);
   };
+  const write = (value: number) => {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    const temporaryPath = `${filePath}.tmp`;
+    fs.writeFileSync(temporaryPath, JSON.stringify({ [field]: value }, null, 2), { mode: 0o600 });
+    fs.renameSync(temporaryPath, filePath);
+  };
   return {
     async peek() { return read(); },
     async reserve() {
       const current = read();
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      const temporaryPath = `${filePath}.tmp`;
-      fs.writeFileSync(temporaryPath, JSON.stringify({ [field]: current + 1 }, null, 2), { mode: 0o600 });
-      fs.renameSync(temporaryPath, filePath);
+      write(current + 1);
       return current;
+    },
+    async releaseIfLast(reservedNumber: number) {
+      if (read() !== reservedNumber + 1) return false;
+      write(reservedNumber);
+      return true;
     },
   };
 }
@@ -61,6 +75,12 @@ export function createRedisCounter(options: Omit<CounterOptions, 'filePath' | 'f
       await initialize();
       const next = assertSequence(await redis.incr(key), label);
       return next - 1;
+    },
+    async releaseIfLast(reservedNumber: number) {
+      await initialize();
+      if (assertSequence(await redis.get<number>(key), label) !== reservedNumber + 1) return false;
+      await redis.set(key, reservedNumber);
+      return true;
     },
   };
 }

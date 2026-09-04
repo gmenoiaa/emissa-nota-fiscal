@@ -20,6 +20,8 @@ export interface InvoiceStore {
   list(options?: InvoiceListOptions): Promise<InvoiceListPage>;
   /** Read-modify-write. This app has a single authenticated operator, so no lock is used. */
   update(invoiceNumber: number, patch: Partial<InvoiceRecord>): Promise<InvoiceRecord>;
+  /** Hard removal, reserved for records that never left the building. */
+  delete(invoiceNumber: number): Promise<void>;
 }
 
 const DEFAULT_LIMIT = 50;
@@ -80,6 +82,11 @@ export function createLocalInvoiceStore(directory: string): InvoiceStore {
       if (!current) throw notFound(invoiceNumber);
       return writeRecord(mergeRecord(current, patch));
     },
+    async delete(invoiceNumber) {
+      const file = recordPath(invoiceNumber);
+      if (!fs.existsSync(file)) throw notFound(invoiceNumber);
+      fs.unlinkSync(file);
+    },
   };
   return store;
 }
@@ -117,6 +124,12 @@ export function createRedisInvoiceStore(): InvoiceStore {
       const current = await store.get(invoiceNumber);
       if (!current) throw notFound(invoiceNumber);
       return store.save(mergeRecord(current, patch));
+    },
+    async delete(invoiceNumber) {
+      const current = await store.get(invoiceNumber);
+      if (!current) throw notFound(invoiceNumber);
+      await redis.del(recordKey(invoiceNumber));
+      await redis.zrem(indexKey, String(invoiceNumber));
     },
   };
   return store;

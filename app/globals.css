@@ -76,3 +76,6 @@ pre { max-height:55vh; overflow:auto; background:#14221a; color:#dcecdf; border-
 .linked-invoice { padding:16px 20px; margin-bottom:18px; border-color:#bcd3c3; background:#f3f9f5; color:var(--green); }
 .link-button.quiet-action { color:var(--muted); font-weight:700; }
 .link-button.quiet-action:hover { color:var(--green); }
+.link-button.danger { color:#8b231b; }
+.link-button.danger:hover { color:#6d1a14; }
+.row-actions { flex-wrap:wrap; row-gap:6px; }

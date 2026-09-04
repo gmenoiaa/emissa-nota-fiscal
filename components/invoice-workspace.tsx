@@ -122,7 +122,30 @@ export function InvoiceWorkspace() {
     }
   }
 
+  async function removeInvoice(record: InvoiceRecord) {
+    if (!window.confirm(
+      `Excluir ${record.reference} definitivamente?\n\nO registro some e o número volta para a sequência se for o último gerado.`,
+    )) return;
+    setBusy(`delete-${record.number}`);
+    try {
+      const result = await api<{ numberReclaimed: boolean }>(`/api/invoices/${record.number}`, { method: 'DELETE' });
+      setMessage({
+        text: `${record.reference} excluída.${
+          result.numberReclaimed ? ` O número ${record.number} volta a ser o próximo.` : ''
+        }`,
+      });
+      await refresh();
+    } catch (error) {
+      setMessage({ text: (error as Error).message, error: true });
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function changeStatus(record: InvoiceRecord, status: InvoiceRecord['status']) {
+    if (status === 'void' && !window.confirm(
+      `Cancelar ${record.reference}?\n\nO registro e o número são mantidos, mas a invoice não poderá mais ser enviada.`,
+    )) return;
     setBusy(`status-${record.number}`);
     try {
       await api<{ record: InvoiceRecord }>(`/api/invoices/${record.number}`, {
@@ -269,9 +292,19 @@ export function InvoiceWorkspace() {
                           </button>
                         </>
                       )}
-                      {record.status !== 'paid' && (
+                      {record.status === 'issued' && (
                         <button type="button" className="link-button" disabled={busy === `status-${record.number}`}
                           onClick={() => changeStatus(record, 'paid')}>Marcar paga</button>
+                      )}
+                      {record.status !== 'void' && (
+                        <button type="button" className="link-button danger" disabled={busy === `status-${record.number}`}
+                          onClick={() => changeStatus(record, 'void')}>Cancelar</button>
+                      )}
+                      {!record.email && !record.nfse && (
+                        <button type="button" className="link-button danger" disabled={busy === `delete-${record.number}`}
+                          onClick={() => removeInvoice(record)}>
+                          {busy === `delete-${record.number}` ? 'Excluindo…' : 'Excluir'}
+                        </button>
                       )}
                       </div>
                     </td>
