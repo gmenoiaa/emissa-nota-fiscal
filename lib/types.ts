@@ -30,6 +30,12 @@ export interface Customer {
   displayAddress: string;
   address: CustomerAddress;
   invoice: InvoiceProfile;
+  /**
+   * Excluded from the NFS-e flow. The DPS treats every customer as a foreign
+   * export client, which a domestic test entity is not, so it must never reach
+   * the tax document.
+   */
+  invoiceOnly?: boolean;
 }
 
 export interface LoadedCertificate {

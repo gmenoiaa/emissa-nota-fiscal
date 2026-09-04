@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { formatInvoiceDate, previousMonthReference } from '../lib/dates';
 import { buildInvoiceRecord, invoiceBalance, parseInvoicePayload } from '../lib/invoice-record';
 import { formatInvoiceReference, parseInvoiceReference } from '../lib/invoice-number';
+import { getInvoiceCustomerDefaults, getNfseCustomer, getPublicCustomers } from '../lib/invoice-config';
 
 const options = { number: 1038, createdAt: '2026-09-03T10:00:00-03:00', today: '2026-09-03' };
 
@@ -73,6 +74,19 @@ test('formats invoice references and dates like the reference documents', () => 
   assert.equal(parseInvoiceReference('1038'), null);
   assert.equal(formatInvoiceDate('2026-09-03'), 'Sep 03 2026');
   assert.equal(previousMonthReference('2026-01-15'), 'Dec/2025');
+});
+
+test('registers GWM Info for invoices only', () => {
+  const record = buildInvoiceRecord(parseInvoicePayload({ customerId: 'gwm-info' }), options);
+  assert.equal(record.customerName, 'GWM Info');
+  assert.equal(record.currencyCode, 'BRL');
+  assert.equal(record.total, '100.00');
+  assert.equal(record.lineItem.description, 'Test invoice');
+
+  // The test entity must not show up as an NFS-e taxpayer.
+  assert.equal(getPublicCustomers().some(({ id }) => id === 'gwm-info'), false);
+  assert.equal(getInvoiceCustomerDefaults().some(({ id }) => id === 'gwm-info'), true);
+  assert.throws(() => getNfseCustomer('gwm-info'), /empresa de teste/);
 });
 
 test('computes the outstanding balance', () => {

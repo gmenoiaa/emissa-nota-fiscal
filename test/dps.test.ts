@@ -62,3 +62,10 @@ test('round-trips the official gzip/base64 envelope', () => {
   assert.equal(decodeDocument(encoded), xml);
   assert.equal(findEncodedNfse({ documentos: { nfseXmlGZipB64: encoded } }), encoded);
 });
+
+test('refuses to build a DPS for an invoice-only test customer', () => {
+  assert.throws(
+    () => buildDps({ customerId: 'gwm-info', amount: '100', description: 'INV-1' }, { dpsNumber: 1 }),
+    /empresa de teste/,
+  );
+});

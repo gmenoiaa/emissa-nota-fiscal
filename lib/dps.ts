@@ -1,5 +1,5 @@
 import { brazilNowIso } from './dates';
-import { fixedInvoice as fixed, getCustomer } from './invoice-config';
+import { fixedInvoice as fixed, getNfseCustomer } from './invoice-config';
 import type { InvoiceInput, NfseEnvironment } from './types';
 
 const escapeXml = (value: string) => value
@@ -23,7 +23,7 @@ export function buildDps(input: InvoiceInput, options: BuildDpsOptions): string 
   const description = String(input.description || '').trim();
   if (!description) throw new Error('Informe a descrição ou número da invoice.');
 
-  const customer = getCustomer(String(input.customerId || ''));
+  const customer = getNfseCustomer(String(input.customerId || ''));
   const address = customer.address;
   const amount = normalizeMoney(input.amount);
   const dpsNumber = String(options?.dpsNumber ?? '');

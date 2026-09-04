@@ -75,6 +75,25 @@ export const customers: Customer[] = [
       email: { to: [], sendByDefault: false },
     },
   },
+  {
+    // Test entity: bills GWM itself so the invoice flow can be exercised
+    // end to end, including a real send, without mailing a paying customer.
+    id: 'gwm-info', name: 'GWM Info', invoiceOnly: true,
+    currency: { numericCode: '986', code: 'BRL', foreignAmount: '100.00' },
+    paymentMechanisms: { provider: '01', customer: '01' },
+    displayAddress: 'Av. Horacio Raccanello Filho 5415, Apto 1505 · 87020035 Maringá · PR, Brasil',
+    address: {
+      country: 'BR', countryName: 'Brasil', postalCode: '87020035', city: 'Maringá', region: 'PR',
+      street: 'Av. Horacio Raccanello Filho', number: '5415', complement: 'Apto 1505', district: 'Zona 07',
+    },
+    invoice: {
+      billingName: 'GWM Info',
+      billingAddress: ['Av. Horacio Raccanello Filho 5415, Apto 1505', 'Maringá, PR, 87020035', 'Brazil'],
+      lineItemDescription: 'Test invoice',
+      includeWireInformation: true,
+      email: { to: ['gwminfoltda@gmail.com'], sendByDefault: true },
+    },
+  },
 ];
 
 export function getCustomer(customerId: string): Customer {
@@ -83,8 +102,17 @@ export function getCustomer(customerId: string): Customer {
   return customer;
 }
 
+/** Customers eligible for an NFS-e. Test entities are deliberately not. */
+export function getNfseCustomer(customerId: string): Customer {
+  const customer = getCustomer(customerId);
+  if (customer.invoiceOnly) {
+    throw new Error(`${customer.name} é uma empresa de teste e não pode receber NFS-e.`);
+  }
+  return customer;
+}
+
 export function getPublicCustomers() {
-  return customers.map((customer) => ({
+  return customers.filter((customer) => !customer.invoiceOnly).map((customer) => ({
     id: customer.id,
     name: customer.name,
     currencyCode: customer.currency.code,
