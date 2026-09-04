@@ -1,6 +1,5 @@
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from '@react-pdf/renderer';
 import { formatInvoiceDate } from './dates';
-import { invoiceBalance } from './invoice-record';
 import { invoiceIssuer } from './invoice-config';
 import type { InvoiceRecord } from './types';
 
@@ -20,10 +19,7 @@ const LABELS = {
   quantity: 'Quantity',
   rate: 'Rate',
   amount: 'Amount',
-  subTotal: 'Sub Total',
   total: 'Total',
-  paidToDate: 'Paid to Date',
-  balance: 'Balance',
   note: 'Invoice Note',
   taxId: 'Tax ID',
   email: 'Email',
@@ -38,7 +34,7 @@ const palette = {
 };
 
 const styles = StyleSheet.create({
-  page: { paddingHorizontal: 48, paddingTop: 48, paddingBottom: 64, fontFamily: 'Helvetica', fontSize: 9.5, color: palette.ink, lineHeight: 1.5 },
+  page: { paddingHorizontal: 42, paddingTop: 48, paddingBottom: 64, fontFamily: 'Helvetica', fontSize: 9.5, color: palette.ink, lineHeight: 1.5 },
   contractor: { fontSize: 8.5, color: palette.muted, marginBottom: 14 },
   eyebrow: { fontFamily: 'Helvetica-Bold', fontSize: 7.5, letterSpacing: 1.4, color: palette.green },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 6 },
@@ -47,16 +43,17 @@ const styles = StyleSheet.create({
   rule: { borderBottomWidth: 1, borderBottomColor: palette.line, marginTop: 18, marginBottom: 24 },
 
   parties: { flexDirection: 'row', justifyContent: 'space-between' },
-  // The issuer street line is the widest text in the row, so From gets the space.
-  party: { width: '42%' },
-  partyTo: { width: '26%' },
-  meta: { width: '26%' },
+  // From and To share one width; the metadata is stacked so it needs far less
+  // room than the address blocks it sits beside.
+  party: { width: '40%' },
+  partyTo: { width: '40%' },
+  meta: { width: '18%' },
   blockLabel: { fontFamily: 'Helvetica-Bold', fontSize: 8, letterSpacing: 0.6, color: palette.muted, marginBottom: 5 },
   partyName: { fontFamily: 'Helvetica-Bold', fontSize: 11 },
   partyLine: { color: palette.muted },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 },
-  metaKey: { color: palette.muted },
-  metaValue: { fontFamily: 'Helvetica-Bold' },
+  metaRow: { marginBottom: 9 },
+  metaKey: { color: palette.muted, fontSize: 8, textAlign: 'right' },
+  metaValue: { fontFamily: 'Helvetica-Bold', textAlign: 'right' },
 
   table: { marginTop: 26 },
   tableHead: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: palette.ink, paddingBottom: 6 },
@@ -67,21 +64,15 @@ const styles = StyleSheet.create({
   colRate: { width: '18%', textAlign: 'right' },
   colAmount: { width: '18%', textAlign: 'right' },
 
-  totals: { marginTop: 14, marginLeft: 'auto', width: '48%' },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 },
-  totalKey: { color: palette.muted },
-  totalValue: { fontFamily: 'Helvetica-Bold' },
-  grandRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: 1, borderTopColor: palette.line },
-  grandKey: { fontFamily: 'Helvetica-Bold', fontSize: 11 },
-  grandValue: { fontFamily: 'Helvetica-Bold', fontSize: 11 },
-  balanceBox: { marginTop: 10, backgroundColor: palette.green, borderRadius: 6, paddingVertical: 9, paddingHorizontal: 12, flexDirection: 'row', justifyContent: 'space-between' },
-  balanceKey: { fontFamily: 'Helvetica-Bold', fontSize: 11, color: '#ffffff' },
-  balanceValue: { fontFamily: 'Helvetica-Bold', fontSize: 11, color: '#ffffff' },
+  totals: { marginTop: 18, marginLeft: 'auto', width: '48%' },
+  totalBox: { backgroundColor: palette.green, borderRadius: 6, paddingVertical: 10, paddingHorizontal: 12, flexDirection: 'row', justifyContent: 'space-between' },
+  totalKey: { fontFamily: 'Helvetica-Bold', fontSize: 11, color: '#ffffff' },
+  totalValue: { fontFamily: 'Helvetica-Bold', fontSize: 11, color: '#ffffff' },
 
   noteBlock: { marginTop: 26, backgroundColor: palette.wash, borderRadius: 8, padding: 16 },
   noteText: { color: palette.muted, fontSize: 8.5, lineHeight: 1.6 },
 
-  footer: { position: 'absolute', left: 48, right: 48, bottom: 32, borderTopWidth: 1, borderTopColor: palette.line, paddingTop: 10 },
+  footer: { position: 'absolute', left: 42, right: 42, bottom: 32, borderTopWidth: 1, borderTopColor: palette.line, paddingTop: 10 },
   footerText: { fontSize: 8, color: palette.muted },
 });
 
@@ -152,21 +143,9 @@ export function InvoiceDocument({ record }: { record: InvoiceRecord }) {
         </View>
 
         <View style={styles.totals}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalKey}>{LABELS.subTotal}</Text>
-            <Text style={styles.totalValue}>{formatAmount(record.total)}</Text>
-          </View>
-          <View style={styles.grandRow}>
-            <Text style={styles.grandKey}>{LABELS.total}</Text>
-            <Text style={styles.grandValue}>{money(record.total)}</Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalKey}>{LABELS.paidToDate}</Text>
-            <Text style={styles.totalValue}>{money(record.paidToDate)}</Text>
-          </View>
-          <View style={styles.balanceBox}>
-            <Text style={styles.balanceKey}>{LABELS.balance}</Text>
-            <Text style={styles.balanceValue}>{money(invoiceBalance(record))}</Text>
+          <View style={styles.totalBox}>
+            <Text style={styles.totalKey}>{LABELS.total}</Text>
+            <Text style={styles.totalValue}>{money(record.total)}</Text>
           </View>
         </View>
 
